@@ -1,13 +1,15 @@
 from tkinter import *
+from math import ceil, floor
 
 
 class Figure:
-    def __init__(self, fig_type, orientation, left, top):
+    def __init__(self, fig_type, orientation, left, top, event_generator=None):
         self.__type = fig_type
         self.orient = orientation
         self.__left = left
         self.__top = top
         self.__points = []
+        self.__generate_event = event_generator
 
         if self.__type == "square":
             self.__points.append((left, top))
@@ -36,26 +38,32 @@ class Figure:
             else:
                 self.__points[i] = (self.__points[i][1] - y + x, x - self.__points[i][0] + y)
         self.orient = self.__next_orient(self.orient, clockwise)
+
+        if self.__generate_event is not None:
+            self.__generate_event("<<Figure-Rotate>>", when='tail')
+
         print(self.orient)
         for i in self.__points:
             print(i)
         x, y = self.get_center()
         print(x, y,)
 
-    def get_center(self):
+    def get_box(self):
         (left, top), (right, bottom) = self.__points[0], self.__points[0]
-        for coord in self.__points:
-            if left > coord[0]:
-                left = coord[0]
-            if right < coord[0]:
-                right = coord[0]
-            if top > coord[1]:
-                top = coord[1]
-            if bottom < coord[1]:
-                bottom = coord[1]
+        for point in self.__points:
+            if left > point[0]:
+                left = point[0]
+            if right < point[0]:
+                right = point[0]
+            if top > point[1]:
+                top = point[1]
+            if bottom < point[1]:
+                bottom = point[1]
+        return left, top, right, bottom
+
+    def get_center(self):
+        left, top, right, bottom = self.get_box()
         return (left + right) / 2, (top + bottom) / 2
-        # return (left + right) / 2, (top + bottom) / 2
-        # return floor((left + right) / 2), floor((top + bottom) / 2)
 
     def __setup_pistol(self, left=None, top=None):
         if left is None or top is None:
@@ -82,6 +90,8 @@ class Figure:
     def move_by(self, x=0, y=0):
         for i in range(len(self.__points)):
             self.__points[i] = self.__points[i][0]+x, self.__points[i][1]+y
+        if self.__generate_event is not None:
+            self.__generate_event("", when='tail')
 
     @staticmethod
     def __next_orient(orient, clockwise):
@@ -100,6 +110,36 @@ class Figure:
     def get_points(self):
         return self.__points
 
+    def get_type(self):
+        return self.__type
+
+
+class Field:
+    def __init__(self, lines, columns, buffer=4):
+        self.__figure = None
+        self.__lines = lines
+        self.__columns = columns
+        self.__buffer = buffer
+        self.__field = [[self.__empty_clr()] * self.__columns] * (self.__lines + self.__buffer)
+
+    @staticmethod
+    def __get_color(figure):
+        fig_type = figure.get_type()
+        return 'red' if fig_type == 'square' else 'green' if fig_type == 'line' else 'blue'
+
+    @staticmethod
+    def __empty_clr():
+        return 'white'
+
+    def add_figure(self, figure):
+        self.__figure = figure
+        for point in figure.get_points():
+            self.__field[floor(point[0])][floor(point[1])] = self.__get_color(figure)
+
+
+def draw(fig):
+    for point in fig.get_points():
+        c.create_rectangle(point[0] * 16, point[1] * 16, (point[0] + 1)*16, (point[1] + 1)*16, fill='red')
 
 def move(c, fig, x=0, y=0):
     c.delete(ALL)
