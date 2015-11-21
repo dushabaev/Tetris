@@ -1,5 +1,4 @@
-from tkinter import *
-from math import ceil, floor
+from math import floor, e
 
 
 class Figure:
@@ -111,17 +110,21 @@ class Figure:
 
 
 class Field:
-    def __init__(self, lines, columns, buffer=4):
+    def __init__(self, columns, lines, buffer=4):
         self.__figure = None
         self.__lines = lines
         self.__columns = columns
         self.__buffer = buffer
-        self.__field = [[self.__empty_cell()] * self.__columns] * (self.__lines + self.__buffer)
+        self.__field = []
+        for i in range(lines+buffer):
+            self.__field.append([])
+            for j in range(columns):
+                self.__field[-1].append(self.__empty_cell())
 
     @staticmethod
     def __get_color(figure):
         fig_type = figure.get_type()
-        return 'red' if fig_type == 'square' else 'green' if fig_type == 'line' else 'blue'
+        return '#FF4000' if fig_type == 'square' else '#40FF00' if fig_type == 'line' else '#00C0FF'
 
     @staticmethod
     def __empty_cell():
@@ -139,59 +142,26 @@ class Field:
         return self.can_figure_move(y=1)
 
     def __get_data(self, point):
-        return self.__field[point[0]][point[1]]
+        return self.__field[point[1]][point[0]]
+
+    def get_data(self):
+        return self.__field[self.__buffer:]
 
     def __set_data(self, points, data):
         for p in points:
-            self.__field[p[0]][p[1]] = data
+            self.__field[p[1]][p[0]] = data
 
     def __point_is_outbound(self, p):
-        return self.__columns < p[0] < 0 or 0 > p[1] > self.__columns
+        return p[0] < 0 or p[0] >= self.__columns or p[1] < 0 or p[1] >= self.__lines+self.__buffer
 
     def add_figure(self, figure):
         self.__figure = figure
         points = self.__figure.get_points()
         for point in points:
-            self.__field[point[0]][point[1]] = self.__get_color(figure)
+            self.__field[point[1]][point[0]] = self.__get_color(figure)
+        return self
 
     def move_figure_by(self, x=0, y=0):
         self.__set_data(self.__figure.get_points(), self.__empty_cell())
-        self.__set_data(self.__figure.move_by(x, y).get_points(), self.__empty_cell())
-
-
-def draw(fig):
-    points = fig.get_points()
-    for point in points:
-        c.create_rectangle(point[0] * 16, point[1] * 16, (point[0] + 1)*16, (point[1] + 1)*16, fill='red')
-
-def move(c, fig, x=0, y=0):
-    c.delete(ALL)
-    fig.move_by(x, y)
-    draw(fig)
-
-
-def rotate(c, fig):
-    fig.rotate()
-    c.delete(ALL)
-    draw(fig)
-
-
-r = Tk()
-c = Canvas(r)
-r.geometry('500x500')
-c['width'] = '500'
-c['height'] = '500'
-c.place(x=0, y=0)
-
-side = 20
-m = Figure("pistol", "down", 2, 2)
-rotate(c, m)
-r.bind_all('<Escape>', lambda e: exit())
-r.bind('<space>', lambda e, c=c, fig=m: rotate(c, fig))
-r.bind('a', lambda e, c=c, fig=m: move(c, fig, x=-1))
-r.bind('w', lambda e, c=c, fig=m: move(c, fig, y=-1))
-r.bind('d', lambda e, c=c, fig=m: move(c, fig, x=1))
-r.bind('s', lambda e, c=c, fig=m: move(c, fig, y=1))
-
-
-r.mainloop()
+        self.__set_data(self.__figure.move_by(x, y).get_points(), 'red')
+        return self
