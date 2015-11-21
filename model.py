@@ -3,13 +3,12 @@ from math import ceil, floor
 
 
 class Figure:
-    def __init__(self, fig_type, orientation, left, top, event_generator=None):
+    def __init__(self, fig_type, orientation, left, top):
         self.__type = fig_type
         self.orient = orientation
         self.__left = left
         self.__top = top
         self.__points = []
-        self.__generate_event = event_generator
 
         if self.__type == "square":
             self.__points.append((left, top))
@@ -39,14 +38,12 @@ class Figure:
                 self.__points[i] = (self.__points[i][1] - y + x, x - self.__points[i][0] + y)
         self.orient = self.__next_orient(self.orient, clockwise)
 
-        if self.__generate_event is not None:
-            self.__generate_event("<<Figure-Rotate>>", when='tail')
-
         print(self.orient)
         for i in self.__points:
             print(i)
         x, y = self.get_center()
         print(x, y,)
+        return self
 
     def get_box(self):
         (left, top), (right, bottom) = self.__points[0], self.__points[0]
@@ -90,8 +87,7 @@ class Figure:
     def move_by(self, x=0, y=0):
         for i in range(len(self.__points)):
             self.__points[i] = self.__points[i][0]+x, self.__points[i][1]+y
-        if self.__generate_event is not None:
-            self.__generate_event("", when='tail')
+        return self
 
     @staticmethod
     def __next_orient(orient, clockwise):
@@ -108,7 +104,7 @@ class Figure:
             return "right" if not clockwise else "left"
 
     def get_points(self):
-        return self.__points
+        return list(map(lambda p: (floor(p[0]),floor(p[1])), self.__points))
 
     def get_type(self):
         return self.__type
@@ -120,7 +116,7 @@ class Field:
         self.__lines = lines
         self.__columns = columns
         self.__buffer = buffer
-        self.__field = [[self.__empty_clr()] * self.__columns] * (self.__lines + self.__buffer)
+        self.__field = [[self.__empty_cell()] * self.__columns] * (self.__lines + self.__buffer)
 
     @staticmethod
     def __get_color(figure):
@@ -128,31 +124,56 @@ class Field:
         return 'red' if fig_type == 'square' else 'green' if fig_type == 'line' else 'blue'
 
     @staticmethod
-    def __empty_clr():
+    def __empty_cell():
         return 'white'
+
+    def can_figure_move(self, x=0, y=0):
+        points = self.__figure.get_points()
+        for p in points:
+            tp = p[0]+x, p[1]+y
+            if tp not in points and (self.__point_is_outbound(tp) or self.__get_data(tp) != self.__empty_cell()):
+                return False
+        return True
+
+    def can_figure_fall(self):
+        return self.can_figure_move(y=1)
+
+    def __get_data(self, point):
+        return self.__field[point[0]][point[1]]
+
+    def __set_data(self, points, data):
+        for p in points:
+            self.__field[p[0]][p[1]] = data
+
+    def __point_is_outbound(self, p):
+        return self.__columns < p[0] < 0 or 0 > p[1] > self.__columns
 
     def add_figure(self, figure):
         self.__figure = figure
-        for point in figure.get_points():
-            self.__field[floor(point[0])][floor(point[1])] = self.__get_color(figure)
+        points = self.__figure.get_points()
+        for point in points:
+            self.__field[point[0]][point[1]] = self.__get_color(figure)
+
+    def move_figure_by(self, x=0, y=0):
+        self.__set_data(self.__figure.get_points(), self.__empty_cell())
+        self.__set_data(self.__figure.move_by(x, y).get_points(), self.__empty_cell())
 
 
 def draw(fig):
-    for point in fig.get_points():
+    points = fig.get_points()
+    for point in points:
         c.create_rectangle(point[0] * 16, point[1] * 16, (point[0] + 1)*16, (point[1] + 1)*16, fill='red')
 
 def move(c, fig, x=0, y=0):
     c.delete(ALL)
     fig.move_by(x, y)
-    for point in fig.get_points():
-        c.create_rectangle(point[0] * 16, point[1] * 16, (point[0] + 1)*16, (point[1] + 1)*16, fill='red')
+    draw(fig)
 
 
 def rotate(c, fig):
     fig.rotate()
     c.delete(ALL)
-    for point in fig.get_points():
-        c.create_rectangle(point[0] * 16, point[1] * 16, (point[0] + 1)*16, (point[1] + 1)*16, fill='red')
+    draw(fig)
 
 
 r = Tk()
@@ -163,7 +184,7 @@ c['height'] = '500'
 c.place(x=0, y=0)
 
 side = 20
-m = Figure("square", "down", 2, 2)
+m = Figure("pistol", "down", 2, 2)
 rotate(c, m)
 r.bind_all('<Escape>', lambda e: exit())
 r.bind('<space>', lambda e, c=c, fig=m: rotate(c, fig))
