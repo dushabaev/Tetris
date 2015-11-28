@@ -1,4 +1,4 @@
-from math import floor, e
+from math import floor
 
 
 class Figure:
@@ -102,8 +102,12 @@ class Figure:
         if orient == "down":
             return "right" if not clockwise else "left"
 
+    @staticmethod
+    def get_figures():
+        return ['square', 'line', 'pistol']
+
     def get_points(self):
-        return list(map(lambda p: (floor(p[0]),floor(p[1])), self.__points))
+        return list(map(lambda p: (floor(p[0]), floor(p[1])), self.__points))
 
     def get_type(self):
         return self.__type
@@ -157,11 +161,20 @@ class Field:
     def add_figure(self, figure):
         self.__figure = figure
         points = self.__figure.get_points()
+        clr = self.__get_color(figure)
+
         for point in points:
-            self.__field[point[1]][point[0]] = self.__get_color(figure)
+            self.__field[point[1]][point[0]] = clr
+
         return self
 
     def move_figure_by(self, x=0, y=0):
         self.__set_data(self.__figure.get_points(), self.__empty_cell())
-        self.__set_data(self.__figure.move_by(x, y).get_points(), 'red')
+        self.__set_data(self.__figure.move_by(x, y).get_points(), self.__get_color(self.__figure))
         return self
+
+    def get_lines(self):
+        return self.__lines
+
+    def get_columns(self):
+        return self.__columns
