@@ -23,7 +23,7 @@ class Figure:
                 for i in range(top, top + 4, 1):
                     self.__points.append((left, i))
 
-        elif self.__type == "pistol":
+        elif "pistol" in self.__type:
             self.__setup_pistol(left, top)
 
     def rotate(self, clockwise=False):
@@ -37,11 +37,6 @@ class Figure:
                 self.__points[i] = (self.__points[i][1] - y + x, x - self.__points[i][0] + y)
         self.orient = self.__next_orient(self.orient, clockwise)
 
-        print(self.orient)
-        for i in self.__points:
-            print(i)
-        x, y = self.get_center()
-        print(x, y,)
         return self
 
     def get_box(self):
@@ -65,27 +60,42 @@ class Figure:
         if left is None or top is None:
             left, top = self.__points[0]
         self.__points = []
-        if self.__type == "pistol":
-            if self.orient == "left":
-                for i in range(top, top + 3, 1):
-                    self.__points.append((left + 1, i))
-                self.__points.append((left, top + 2))
-            elif self.orient == "right":
-                for i in range(top, top + 3, 1):
-                    self.__points.append((left, i))
-                self.__points.append((left + 1, top))
-            elif self.orient == "up":
-                for i in range(left, left + 3, 1):
-                    self.__points.append((i, top + 1))
-                self.__points.append((left, top))
-            elif self.orient == "down":
-                for i in range(left, left + 3, 1):
-                    self.__points.append((i, top))
-                self.__points.append((left + 2, top + 1))
+
+        if self.orient == "left":
+            for i in range(top, top + 3, 1):
+                self.__points.append((left + 1, i))
+            point = (left, top + 2)
+            if self.__type == 'rpistol':
+                point = (left, top)
+            self.__points.append(point)
+
+        elif self.orient == "right":
+            for i in range(top, top + 3, 1):
+                self.__points.append((left, i))
+            point = (left + 1, top)
+            if self.__type == 'rpistol':
+                point = (left + 1, top + 2)
+            self.__points.append(point)
+
+        elif self.orient == "up":
+            for i in range(left, left + 3, 1):
+                self.__points.append((i, top + 1))
+            point = (left, top)
+            if self.__type == 'rpistol':
+                point = (left + 2, top)
+            self.__points.append(point)
+
+        elif self.orient == "down":
+            for i in range(left, left + 3, 1):
+                self.__points.append((i, top))
+            point = (left + 2, top + 1)
+            if self.__type == 'rpistol':
+                point = (left, top + 1)
+            self.__points.append(point)
 
     def move_by(self, x=0, y=0):
         for i in range(len(self.__points)):
-            self.__points[i] = self.__points[i][0]+x, self.__points[i][1]+y
+            self.__points[i] = self.__points[i][0] + x, self.__points[i][1] + y
         return self
 
     @staticmethod
@@ -104,7 +114,7 @@ class Figure:
 
     @staticmethod
     def get_figures():
-        return ['square', 'line', 'pistol']
+        return ['square', 'line', 'pistol', 'rpistpl']
 
     def get_points(self):
         return list(map(lambda p: (floor(p[0]), floor(p[1])), self.__points))
@@ -120,7 +130,7 @@ class Field:
         self.__columns = columns
         self.__buffer = buffer
         self.__field = []
-        for i in range(lines+buffer):
+        for i in range(lines + buffer):
             self.__field.append([])
             for j in range(columns):
                 self.__field[-1].append(self.__empty_cell())
@@ -134,16 +144,26 @@ class Field:
     def __empty_cell():
         return 'white'
 
+    def get_buffer_size(self):
+        return self.__buffer
+
     def can_figure_move(self, x=0, y=0):
         points = self.__figure.get_points()
         for p in points:
-            tp = p[0]+x, p[1]+y
+            tp = p[0] + x, p[1] + y
             if tp not in points and (self.__point_is_outbound(tp) or self.__get_data(tp) != self.__empty_cell()):
                 return False
         return True
 
     def can_figure_fall(self):
-        return self.can_figure_move(y=1)
+        result = self.can_figure_move(y=1)
+        if result:
+            return result
+
+        points = self.__figure.get_points()
+        for _, row in points:
+            if self.is_filled(row):
+                self.erase_row(row)
 
     def __get_data(self, point):
         return self.__field[point[1]][point[0]]
@@ -156,7 +176,7 @@ class Field:
             self.__field[p[1]][p[0]] = data
 
     def __point_is_outbound(self, p):
-        return p[0] < 0 or p[0] >= self.__columns or p[1] < 0 or p[1] >= self.__lines+self.__buffer
+        return p[0] < 0 or p[0] >= self.__columns or p[1] < 0 or p[1] >= self.__lines + self.__buffer
 
     def add_figure(self, figure):
         self.__figure = figure
@@ -173,8 +193,18 @@ class Field:
         self.__set_data(self.__figure.move_by(x, y).get_points(), self.__get_color(self.__figure))
         return self
 
+    def erase_row(self, row):
+        row = [self.__empty_cell() for column in range(self.__columns)]
+        self.__field = row + self.__field[:row] + self[row + 1:]
+
     def get_lines(self):
         return self.__lines
 
     def get_columns(self):
         return self.__columns
+
+    def is_filled(self, row):
+        for column in self.__field[row]:
+            if self.__field[row][column] == self.__empty_cell():
+                return False
+        return True
