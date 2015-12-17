@@ -165,6 +165,8 @@ class Field:
             if self.is_filled(row):
                 self.erase_row(row)
 
+        return result
+
     def __get_data(self, point):
         return self.__field[point[1]][point[0]]
 
@@ -193,6 +195,9 @@ class Field:
         self.__set_data(self.__figure.move_by(x, y).get_points(), self.__get_color(self.__figure))
         return self
 
+    def figure_make_fall_tick(self):
+        return self.move_figure_by(y=1)
+
     def erase_row(self, row):
         row = [self.__empty_cell() for column in range(self.__columns)]
         self.__field = row + self.__field[:row] + self[row + 1:]
@@ -204,7 +209,8 @@ class Field:
         return self.__columns
 
     def is_filled(self, row):
-        for column in self.__field[row]:
+        for column in range(len(self.__field[row])):
+        # for column in self.__field[row]:
             if self.__field[row][column] == self.__empty_cell():
                 return False
         return True

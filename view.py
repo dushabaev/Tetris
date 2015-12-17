@@ -50,20 +50,13 @@ class View:
             for j in range(len(data[i])):
                 self.field.itemconfig(self.__rects[i][j], fill=data[i][j])
 
-    def handle(self, event):
-        if event.keysym == "Left":
-            self.f.move_figure_by(x=-1)
-        elif event.keysym == "Right":
-            self.f.move_figure_by(x=1)
-        self.draw()
-
     def draw_next(self, figure: Figure, clr):
         p = figure.get_points()
         for x, y in p:
             self.__next_figure.itemconfigure(self.__next_rects[y][x], fill=clr)
 
-    def set_next(self, type, orientation):
-        figure = Figure(type, orientation, 1, 0)
+    def set_next(self, figure):
+        # figure = Figure(type, orientation, 1, 0)
         self.draw_next(figure, 'white')
         self.draw_next(figure, 'blue')
 
@@ -80,16 +73,17 @@ def fall(view):
         view.field.after(400, fall, view)
 
 
-r = Tk()
-r.geometry('+800+100')
-r.title('TETRIS')
-f = Field(8, 16)
-f.add_figure(p)
-
-v = View(r, 129, 257, f, 'white')
-r.bind('<Key>', v.handle)
-
-v.set_next('rpistol', 'up')
-
-fall(v)
-r.mainloop()
+# r = Tk()
+# r.geometry('+800+100')
+# r.title('TETRIS')
+# f = Field(8, 16)
+# f.add_figure(p)
+#
+# v = View(r, 129, 257, f, 'white')
+# r.bind('<Key>', v.handle)
+#
+# v.set_next('rpistol', 'up')
+#
+# fall(v)
+# r.mainloop()
+#
