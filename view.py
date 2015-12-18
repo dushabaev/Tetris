@@ -55,35 +55,7 @@ class View:
         for x, y in p:
             self.__next_figure.itemconfigure(self.__next_rects[y][x], fill=clr)
 
-    def set_next(self, figure):
-        # figure = Figure(type, orientation, 1, 0)
-        self.draw_next(figure, 'white')
+    def set_next(self, figure, old=None):
+        if old is not None:
+            self.draw_next(old, 'white')
         self.draw_next(figure, 'blue')
-
-
-p = Figure("rpistol", "down", 5, 0)
-l = Figure("line", "down", 5, 0)
-s = Figure("square", "down", 2, 5)
-
-
-def fall(view):
-    if view.f.can_figure_fall():
-        view.f.move_figure_by(y=1)
-        view.draw()
-        view.field.after(400, fall, view)
-
-
-# r = Tk()
-# r.geometry('+800+100')
-# r.title('TETRIS')
-# f = Field(8, 16)
-# f.add_figure(p)
-#
-# v = View(r, 129, 257, f, 'white')
-# r.bind('<Key>', v.handle)
-#
-# v.set_next('rpistol', 'up')
-#
-# fall(v)
-# r.mainloop()
-#

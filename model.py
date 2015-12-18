@@ -52,6 +52,14 @@ class Figure:
                 bottom = point[1]
         return left, top, right, bottom
 
+    def get_width(self):
+        left, top, right, bottom = self.get_box()
+        return right-left
+
+    def get_height(self):
+        left, top, right, bottom = self.get_box()
+        return bottom-top
+
     def get_center(self):
         left, top, right, bottom = self.get_box()
         return (left + right) / 2, (top + bottom) / 2
@@ -114,7 +122,7 @@ class Figure:
 
     @staticmethod
     def get_figures():
-        return ['square', 'line', 'pistol', 'rpistpl']
+        return ['square', 'line', 'pistol', 'rpistol']
 
     def get_points(self):
         return list(map(lambda p: (floor(p[0]), floor(p[1])), self.__points))
@@ -130,6 +138,8 @@ class Field:
         self.__columns = columns
         self.__buffer = buffer
         self.__field = []
+        self.on_data_change = lambda: None
+        self.on_game_over = lambda: None
         for i in range(lines + buffer):
             self.__field.append([])
             for j in range(columns):
@@ -147,6 +157,19 @@ class Field:
     def get_buffer_size(self):
         return self.__buffer
 
+    def figure_rotate(self):
+        points = self.__figure.get_points()
+        self.__set_data(points, self.__empty_cell())
+        self.__figure.rotate()
+        points = self.__figure.get_points()
+
+        for point in points:
+            if self.__point_is_outbound(point) or self.__get_data(point) != self.__empty_cell():
+                self.__figure.rotate(True)
+                break
+        self.__set_data(self.__figure.get_points(), self.__get_color(self.__figure))
+        return self
+
     def can_figure_move(self, x=0, y=0):
         points = self.__figure.get_points()
         for p in points:
@@ -161,10 +184,16 @@ class Field:
             return result
 
         points = self.__figure.get_points()
+        erased = False
         for _, row in points:
             if self.is_filled(row):
                 self.erase_row(row)
-
+                erased = True
+        if not erased:
+            for _, row in points:
+                if row == self.__buffer:
+                    self.on_game_over()
+                    return result
         return result
 
     def __get_data(self, point):
@@ -176,6 +205,7 @@ class Field:
     def __set_data(self, points, data):
         for p in points:
             self.__field[p[1]][p[0]] = data
+        self.on_data_change()
 
     def __point_is_outbound(self, p):
         return p[0] < 0 or p[0] >= self.__columns or p[1] < 0 or p[1] >= self.__lines + self.__buffer
@@ -185,9 +215,7 @@ class Field:
         points = self.__figure.get_points()
         clr = self.__get_color(figure)
 
-        for point in points:
-            self.__field[point[1]][point[0]] = clr
-
+        self.__set_data(points, clr)
         return self
 
     def move_figure_by(self, x=0, y=0):
@@ -199,8 +227,10 @@ class Field:
         return self.move_figure_by(y=1)
 
     def erase_row(self, row):
-        row = [self.__empty_cell() for column in range(self.__columns)]
-        self.__field = row + self.__field[:row] + self[row + 1:]
+        n_row = [self.__empty_cell() for column in range(self.__columns)]
+        self.__field = [n_row] + self.__field[:row] + self.__field[row + 1:]
+        self.on_data_change()
+        return self
 
     def get_lines(self):
         return self.__lines
@@ -210,7 +240,12 @@ class Field:
 
     def is_filled(self, row):
         for column in range(len(self.__field[row])):
-        # for column in self.__field[row]:
             if self.__field[row][column] == self.__empty_cell():
                 return False
         return True
+
+    def clear(self):
+        for i in range(self.__lines+self.__buffer):
+            for j in range(self.__columns):
+                self.__field[i][j] = self.__empty_cell()
+        self.on_data_change()
