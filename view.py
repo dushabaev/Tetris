@@ -10,17 +10,23 @@ class View:
         self.__lines, self.__columns = self.f.get_lines(), self.f.get_columns()
         self.__width, self.__height = width, height
         self.__dx, self.__dy = floor(self.__width / self.__columns), floor(self.__height / self.__lines)
-        Label(master, text="TETRIS", font='ComicSans 16 bold').pack(side=TOP, anchor=N)
+        Label(master, text="TETRIS", font='ComicSans 16 bold').grid(columnspan=2)
+
+        Label(master, text="Score:", font='ComicSans 16 bold').grid(column=0)
+        self.score = StringVar(master)
+        Label(master, font='ComicSans 16 bold', textvariable=self.score).grid(row=1, column=1)
+        self.score.set('0')
+
 
         self.field = Canvas(self.master, width=self.__width, height=self.__height)
-        self.field.pack(side=LEFT)
+        self.field.grid(column=0, rowspan=50)
 
         self.__rects = []
         self.__next_rects = []
 
-        Label(master, text="Next:", font='ComicSans 16 bold').pack(side=TOP)
+        Label(master, text="Next:", font='ComicSans 16 bold').grid(row=2, column=1, sticky=N)
         self.__next_figure = Canvas(self.master, width=4 * self.__dx+1, height=4 * self.__dy+1)
-        self.__next_figure.pack(side=TOP)
+        self.__next_figure.grid(column=1, sticky=N, row=3)
 
         self.__empty_clr = empty_clr
 

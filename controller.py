@@ -6,7 +6,7 @@ from view import *
 class Controller:
     def __init__(self, field: Field, view: View):
         self.is_boost = False
-        self.sleep = 200
+        self.sleep = 300
         self.is_game_over = False
         self.__field = field
         self.__view = view
@@ -16,6 +16,7 @@ class Controller:
 
         self.__field.add_figure(self.random_figure(self.rand_col(self.__field), 0))
         self.after = None
+        self.score = self.__view.score
 
     def add_new_figure(self):
         from copy import deepcopy
@@ -46,6 +47,7 @@ class Controller:
             return
         if self.__field.can_figure_fall():
             self.__field.figure_make_fall_tick()
+            self.score.set(str(int(self.score.get())+1))
         else:
             if self.is_boost:
                 self.disable_boost()
@@ -54,11 +56,11 @@ class Controller:
 
     def disable_boost(self):
         self.is_boost = False
-        self.sleep *= 4
+        self.sleep *= 10
 
     def enable_boost(self):
         self.is_boost = True
-        self.sleep /= 4
+        self.sleep /= 10
 
     def game_over(self):
         self.is_game_over = True
@@ -69,6 +71,9 @@ class Controller:
     def restart(self):
         self.is_game_over = False
         self.__field.clear()
+
+    def on_erase_row(self):
+        self.score.set(str(int(self.score.get())+self.__field.get_columns()))
 
     @staticmethod
     def rand_col(field):
@@ -92,6 +97,7 @@ app = Controller(f, v)
 
 f.on_data_change = v.draw
 f.on_game_over = app.game_over
+f.on_erase_row = app.on_erase_row
 
 r.bind('<Key>', app.on_key_press)
 app.fall()

@@ -133,6 +133,7 @@ class Figure:
 
 class Field:
     def __init__(self, columns, lines, buffer=4):
+        self.on_erase_row = lambda: None
         self.__figure = None
         self.__lines = lines
         self.__columns = columns
@@ -184,12 +185,18 @@ class Field:
             return result
 
         points = self.__figure.get_points()
-        erased = False
+        erase = set()
         for _, row in points:
             if self.is_filled(row):
-                self.erase_row(row)
-                erased = True
-        if not erased:
+                erase.add(row)
+
+        erase = list(erase)
+        erase.sort()
+
+        for i in erase:
+            self.erase_row(i)
+
+        if len(erase) == 0:
             for _, row in points:
                 if row == self.__buffer:
                     self.on_game_over()
@@ -230,6 +237,7 @@ class Field:
         n_row = [self.__empty_cell() for column in range(self.__columns)]
         self.__field = [n_row] + self.__field[:row] + self.__field[row + 1:]
         self.on_data_change()
+        self.on_erase_row()
         return self
 
     def get_lines(self):
