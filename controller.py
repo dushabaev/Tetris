@@ -3,20 +3,33 @@ from random import randint
 from view import *
 
 
+def on_leave(e):
+    e.widget['state'] = NORMAL
+
+
+def on_enter(e):
+    e.widget['state'] = ACTIVE
+
+
 class Controller:
-    def __init__(self, field: Field, view: View):
+    def __init__(self, master):
+        self.scores = None
+        self.master = master
+        self.frame = Frame(self.master)
+        self.frame.pack()
+
         self.is_boost = False
         self.sleep = 300
         self.is_game_over = False
-        self.__field = field
-        self.__view = view
 
-        self.__next_figure = self.random_figure(0, 0)
-        self.__view.set_next(self.__next_figure)
+        self.__field = None
+        self.__view = None
+        self.__next_figure = None
 
-        self.__field.add_figure(self.random_figure(self.rand_col(self.__field), 0))
         self.after = None
-        self.score = self.__view.score
+        self.score = None
+
+        self.master.bind('<Escape>', lambda e: self.menu())
 
     def add_new_figure(self):
         from copy import deepcopy
@@ -47,11 +60,12 @@ class Controller:
             return
         if self.__field.can_figure_fall():
             self.__field.figure_make_fall_tick()
-            self.score.set(str(int(self.score.get())+1))
+            self.score.set(str(int(self.score.get()) + 1))
         else:
             if self.is_boost:
                 self.disable_boost()
-            self.add_new_figure()
+            if not self.is_game_over:
+                self.add_new_figure()
         self.after = self.__view.master.after(int(self.sleep), self.fall)
 
     def disable_boost(self):
@@ -67,13 +81,117 @@ class Controller:
         from tkinter import messagebox
         if messagebox.askyesno('GAME OVER', 'Restart ?'):
             self.restart()
+        else:
+            self.add_high_score()
 
     def restart(self):
         self.is_game_over = False
+        self.score.set('0')
         self.__field.clear()
 
     def on_erase_row(self):
-        self.score.set(str(int(self.score.get())+self.__field.get_columns()))
+        self.score.set(str(int(self.score.get()) + self.__field.get_columns()))
+
+    def menu(self):
+        self.clear()
+
+        cfg = {
+            'activeforeground': 'red',
+            'activebackground': self.master['bg'],
+            'font': 'videophreak 48 bold',
+            'cursor': 'hand2'
+        }
+        items = [
+            Label(self.frame, cfg, text='PLAY'),
+            Label(self.frame, cfg, text='HIGH SCORES'),
+            Label(self.frame, cfg, text='EXIT')
+        ]
+
+        for i in items:
+            i.pack(side=TOP)
+            i.bind('<Enter>', on_enter)
+            i.bind('<Leave>', on_leave)
+
+        items[0].bind('<Button-1>', lambda e: self.play())
+        items[1].bind('<Button-1>', lambda e: self.show_high_scores())
+        items[2].bind('<Button-1>', lambda e: exit())
+
+    def load_high_scores(self, row=0):
+        import pickle
+        f = open('scores.pckl', 'rb')
+
+        self.scores = pickle.load(f)
+
+        font = 'videophreak 48 bold'
+        for score in self.scores:
+            Label(self.frame, text=score[0], font=font + ' underline').grid(sticky=W, padx=100)
+            Label(self.frame, text=str(score[1]), font=font).grid(row=row, column=1, sticky=E)
+            row += 1
+        f.close()
+
+    def save_high_scores(self):
+        import pickle
+        f = open('scores.pckl', 'wb')
+        self.scores.sort(reverse=True, key=lambda record: record[1])
+        pickle.dump(self.scores, f)
+        f.close()
+
+    def show_high_scores(self):
+        self.clear()
+        self.load_high_scores()
+        back = Label(self.frame, text='Back', cursor='hand2', font='videophreak 36 bold', activeforeground='red',
+                     activebackground=self.master['bg'])
+        back.bind('<Button-1>', lambda e: self.menu())
+        back.bind('<Enter>', on_enter)
+        back.bind('<Leave>', on_leave)
+        back.grid(columnspan=2)
+
+    def add_record(self, record):
+        self.scores.append(record)
+        self.save_high_scores()
+
+        self.show_high_scores()
+
+    def add_high_score(self):
+        self.clear()
+
+        name = StringVar()
+        name.set('Name')
+
+        e = Entry(self.frame, justify='center', font='videophreak 48 bold', textvariable=name)
+        e.grid(columnspan=2)
+
+        self.load_high_scores(1)
+
+        e.bind('<Return>', lambda e: self.add_record((name.get(), int(self.score.get()))))
+
+        e.icursor(END)
+        e.selection_range(0, END)
+        e.focus()
+
+    def play(self):
+        self.clear()
+
+        self.__field = Field(8, 16)
+        self.__view = View(self.frame, 129, 257, self.__field, 'white')
+        self.score = self.__view.score
+
+        self.__next_figure = self.random_figure(0, 0)
+        self.__view.set_next(self.__next_figure)
+
+        self.__field.add_figure(self.random_figure(self.rand_col(self.__field), 0))
+
+        self.__field.on_data_change = self.__view.draw
+        self.__field.on_game_over = self.game_over
+        self.__field.on_erase_row = self.on_erase_row
+
+        self.master.bind('<Key>', self.on_key_press)
+        self.fall()
+
+    def clear(self):
+        self.frame.destroy()
+        self.frame = Frame(self.master)
+        self.frame.pack()
 
     @staticmethod
     def rand_col(field):
@@ -91,15 +209,8 @@ class Controller:
 r = Tk()
 r.geometry('+800+100')
 r.title('TETRIS')
-f = Field(8, 16)
-v = View(r, 129, 257, f, 'white')
-app = Controller(f, v)
 
-f.on_data_change = v.draw
-f.on_game_over = app.game_over
-f.on_erase_row = app.on_erase_row
-
-r.bind('<Key>', app.on_key_press)
-app.fall()
+app = Controller(r)
+app.menu()
 
 r.mainloop()

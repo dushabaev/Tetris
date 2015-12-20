@@ -147,9 +147,15 @@ class Field:
                 self.__field[-1].append(self.__empty_cell())
 
     @staticmethod
-    def __get_color(figure):
+    def get_color(figure):
         fig_type = figure.get_type()
-        return '#FF4000' if fig_type == 'square' else '#40FF00' if fig_type == 'line' else '#00C0FF'
+        clrs = {
+            'square':'#FF4000',
+            'line': '#40FF00',
+            'pistol': '#00C0FF',
+            'rpistol': '#C000FF'
+        }
+        return clrs[fig_type]
 
     @staticmethod
     def __empty_cell():
@@ -168,7 +174,7 @@ class Field:
             if self.__point_is_outbound(point) or self.__get_data(point) != self.__empty_cell():
                 self.__figure.rotate(True)
                 break
-        self.__set_data(self.__figure.get_points(), self.__get_color(self.__figure))
+        self.__set_data(self.__figure.get_points(), self.get_color(self.__figure))
         return self
 
     def can_figure_move(self, x=0, y=0):
@@ -220,14 +226,14 @@ class Field:
     def add_figure(self, figure):
         self.__figure = figure
         points = self.__figure.get_points()
-        clr = self.__get_color(figure)
+        clr = self.get_color(figure)
 
         self.__set_data(points, clr)
         return self
 
     def move_figure_by(self, x=0, y=0):
         self.__set_data(self.__figure.get_points(), self.__empty_cell())
-        self.__set_data(self.__figure.move_by(x, y).get_points(), self.__get_color(self.__figure))
+        self.__set_data(self.__figure.move_by(x, y).get_points(), self.get_color(self.__figure))
         return self
 
     def figure_make_fall_tick(self):
