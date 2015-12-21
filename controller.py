@@ -29,7 +29,7 @@ class Controller:
         self.after = None
         self.score = None
 
-        self.master.bind('<Escape>', lambda e: self.menu())
+        self.master.bind('<Escape>', lambda e: self.menu(True))
 
     def add_new_figure(self):
         from copy import deepcopy
@@ -92,8 +92,15 @@ class Controller:
     def on_erase_row(self):
         self.score.set(str(int(self.score.get()) + self.__field.get_columns()))
 
-    def menu(self):
-        self.clear()
+    def menu(self, paused=False):
+        cpy = None
+        if paused:
+            cpy = self.frame
+            cpy.pack_forget()
+            self.frame = Frame(self.master)
+            self.frame.pack()
+        else:
+            self.clear()
 
         cfg = {
             'activeforeground': 'red',
@@ -102,17 +109,24 @@ class Controller:
             'cursor': 'hand2'
         }
         items = [
-            Label(self.frame, cfg, text='PLAY'),
+            Label(self.frame, cfg, text='PLAY' if not paused else 'RESUME'),
             Label(self.frame, cfg, text='HIGH SCORES'),
             Label(self.frame, cfg, text='EXIT')
         ]
 
         for i in items:
+            if i['text'] == 'HIGH SCORES' and paused:
+                continue
             i.pack(side=TOP)
             i.bind('<Enter>', on_enter)
             i.bind('<Leave>', on_leave)
 
-        items[0].bind('<Button-1>', lambda e: self.play())
+        def back(event):
+            event.widget.master.destroy()
+            cpy.pack()
+            self.frame = cpy
+
+        items[0].bind('<Button-1>', (lambda e: self.play()) if not paused else back)
         items[1].bind('<Button-1>', lambda e: self.show_high_scores())
         items[2].bind('<Button-1>', lambda e: exit())
 
@@ -133,6 +147,7 @@ class Controller:
         import pickle
         f = open('scores.pckl', 'wb')
         self.scores.sort(reverse=True, key=lambda record: record[1])
+        self.scores = self.scores[:5]
         pickle.dump(self.scores, f)
         f.close()
 
@@ -141,10 +156,28 @@ class Controller:
         self.load_high_scores()
         back = Label(self.frame, text='Back', cursor='hand2', font='videophreak 36 bold', activeforeground='red',
                      activebackground=self.master['bg'])
+        clear = Label(self.frame, text='Clear', cursor='hand2', font='videophreak 36 bold', activeforeground='red',
+                      activebackground=self.master['bg'])
+
         back.bind('<Button-1>', lambda e: self.menu())
         back.bind('<Enter>', on_enter)
         back.bind('<Leave>', on_leave)
-        back.grid(columnspan=2)
+        back.grid(column=0, sticky=W)
+
+        clear.bind('<Button-1>', lambda e: self.clear_high_scores())
+        clear.bind('<Enter>', on_enter)
+        clear.bind('<Leave>', on_leave)
+        clear.grid(row=back.grid_info()['row'], column=1, sticky=E)
+
+    def clear_high_scores(self):
+        import pickle
+        f = open('scores.pckl', 'wb')
+        self.scores = []
+        for i in range(5):
+            self.scores.append(('Empty', 0))
+        pickle.dump(self.scores, f)
+        f.close()
+        self.show_high_scores()
 
     def add_record(self, record):
         self.scores.append(record)
@@ -179,7 +212,7 @@ class Controller:
         self.__next_figure = self.random_figure(0, 0)
         self.__view.set_next(self.__next_figure)
 
-        self.__field.add_figure(self.random_figure(self.rand_col(self.__field), 0))
+        self.__field.add_figure(self.random_figure(None, 0))
 
         self.__field.on_data_change = self.__view.draw
         self.__field.on_game_over = self.game_over
@@ -197,13 +230,17 @@ class Controller:
     def rand_col(field):
         return randint(0, field.get_columns() - 4)
 
-    @staticmethod
-    def random_figure(left, top):
+    def random_figure(self, left, top):
         figures = Figure.get_figures()
         directions = ['left', 'up', 'down', 'right']
 
         choice = figures[randint(0, len(figures) - 1)], directions[randint(0, len(directions) - 1)]
-        return Figure(*(choice + (left, top)))
+        f = Figure(*(choice + (0, top)))
+        if left is not None:
+            f.move_by(left)
+        else:
+            f.move_by(randint(0, self.__field.get_columns()-f.get_width()))
+        return f
 
 
 r = Tk()
