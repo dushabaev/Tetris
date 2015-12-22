@@ -22,9 +22,8 @@ class Figure:
             else:
                 for i in range(top, top + 4, 1):
                     self.__points.append((left, i))
-
-        elif "pistol" in self.__type:
-            self.__setup_pistol(left, top)
+        else:
+            self.__setup_broken_line(left, top)
 
     def rotate(self, clockwise=False):
         if self.__type == "square":
@@ -54,52 +53,46 @@ class Figure:
 
     def get_width(self):
         left, top, right, bottom = self.get_box()
-        return right-left
+        return right - left
 
     def get_height(self):
         left, top, right, bottom = self.get_box()
-        return bottom-top
+        return bottom - top
 
     def get_center(self):
         left, top, right, bottom = self.get_box()
         return (left + right) / 2, (top + bottom) / 2
 
-    def __setup_pistol(self, left=None, top=None):
-        if left is None or top is None:
-            left, top = self.__points[0]
-        self.__points = []
+    def __setup_broken_line(self, left=None, top=None):
+        def line(obj, left, top, len, x=1, y=0):
+            for i in range(top+y, top+y + len):
+                obj.__points.append((left + x, i))
 
-        if self.orient == "left":
-            for i in range(top, top + 3, 1):
-                self.__points.append((left + 1, i))
-            point = (left, top + 2)
-            if self.__type == 'rpistol':
-                point = (left, top)
-            self.__points.append(point)
+        # create points for left orientation
+        if 'pistol' in self.__type or self.__type == 't':
+            line(self, left, top, 3)
+            types = ['pistol', 't', 'rpistol']
+            top += types.index(self.__type)
+            self.__points.append((left, top))
+        elif 'skew' in self.__type:
+            r = self.__type[0] == 'r'
+            line(self, left, top, 2, int(not r))
+            line(self, left, top, 2, int(r), 1)
 
-        elif self.orient == "right":
-            for i in range(top, top + 3, 1):
-                self.__points.append((left, i))
-            point = (left + 1, top)
-            if self.__type == 'rpistol':
-                point = (left + 1, top + 2)
-            self.__points.append(point)
+        orients = self.get_orients()
+        pos = orients.index(self.orient) - orients.index('left')
+        clockwise = pos > 0
+        for i in range(abs(pos)):
+            self.rotate(clockwise)
 
-        elif self.orient == "up":
-            for i in range(left, left + 3, 1):
-                self.__points.append((i, top + 1))
-            point = (left, top)
-            if self.__type == 'rpistol':
-                point = (left + 2, top)
-            self.__points.append(point)
-
-        elif self.orient == "down":
-            for i in range(left, left + 3, 1):
-                self.__points.append((i, top))
-            point = (left + 2, top + 1)
-            if self.__type == 'rpistol':
-                point = (left, top + 1)
-            self.__points.append(point)
+        #fix negaitve points
+        min_x, min_y = 0, 0
+        for point in self.__points:
+            min_x = min(point[0], min_x)
+            min_y = min(point[1], min_y)
+        min_x *= -1
+        min_y *= -1
+        self.__points = list(map(lambda p: (p[0] + min_x, p[1] + min_y), self.__points))
 
     def move_by(self, x=0, y=0):
         for i in range(len(self.__points)):
@@ -107,22 +100,20 @@ class Figure:
         return self
 
     @staticmethod
+    def get_orients():
+        return ['left', 'up', 'right', 'down']
+
+    @staticmethod
     def __next_orient(orient, clockwise):
-        if orient == "left":
-            return "up" if clockwise else "down"
+        clockwise_orients = Figure.get_orients()
+        c_clockwise_orients = list(reversed(clockwise_orients))
+        orients = clockwise_orients if clockwise else c_clockwise_orients
 
-        if orient == "right":
-            return "up" if not clockwise else "down"
-
-        if orient == "up":
-            return "right" if clockwise else "left"
-
-        if orient == "down":
-            return "right" if not clockwise else "left"
+        return orients[(orients.index(orient) + 1) % len(orients)]
 
     @staticmethod
     def get_figures():
-        return ['square', 'line', 'pistol', 'rpistol']
+        return ['square', 'line', 'pistol', 'rpistol', 't', 'skew', 'rskew']
 
     def get_points(self):
         return list(map(lambda p: (floor(p[0]), floor(p[1])), self.__points))
@@ -150,10 +141,13 @@ class Field:
     def get_color(figure):
         fig_type = figure.get_type()
         clrs = {
-            'square':'#FF4000',
+            'square': '#FF4000',
             'line': '#40FF00',
             'pistol': '#00C0FF',
-            'rpistol': '#C000FF'
+            'rpistol': '#C000FF',
+            't': 'magenta',
+            'skew': 'orange',
+            'rskew': 'cyan'
         }
         return clrs[fig_type]
 
@@ -259,7 +253,7 @@ class Field:
         return True
 
     def clear(self):
-        for i in range(self.__lines+self.__buffer):
+        for i in range(self.__lines + self.__buffer):
             for j in range(self.__columns):
                 self.__field[i][j] = self.__empty_cell()
         self.on_data_change()

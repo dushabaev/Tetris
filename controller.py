@@ -35,7 +35,7 @@ class Controller:
         from copy import deepcopy
         old = deepcopy(self.__next_figure)
 
-        x = self.rand_col(self.__field)
+        x = self.rand_col(self.__field, old)
         self.__next_figure.move_by(x=x, y=self.__field.get_buffer_size() - self.__next_figure.get_height() - 1)
         self.__field.add_figure(self.__next_figure)
 
@@ -227,8 +227,8 @@ class Controller:
         self.frame.pack()
 
     @staticmethod
-    def rand_col(field):
-        return randint(0, field.get_columns() - 4)
+    def rand_col(field, figure):
+        return randint(0, field.get_columns() - figure.get_width()-1)
 
     def random_figure(self, left, top):
         figures = Figure.get_figures()
@@ -239,7 +239,7 @@ class Controller:
         if left is not None:
             f.move_by(left)
         else:
-            f.move_by(randint(0, self.__field.get_columns()-f.get_width()))
+            f.move_by(randint(0, self.rand_col(self.__field, f)))
         return f
 
 
