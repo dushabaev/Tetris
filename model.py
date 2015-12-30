@@ -132,6 +132,7 @@ class Field:
         self.__field = []
         self.on_data_change = lambda: None
         self.on_game_over = lambda: None
+
         for i in range(lines + buffer):
             self.__field.append([])
             for j in range(columns):

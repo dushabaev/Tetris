@@ -14,6 +14,7 @@ def on_enter(e):
 class Controller:
     def __init__(self, master):
         self.scores = None
+        self.paused = False
         self.master = master
         self.frame = Frame(self.master)
         self.frame.pack()
@@ -58,14 +59,15 @@ class Controller:
     def fall(self):
         if self.is_game_over:
             return
-        if self.__field.can_figure_fall():
-            self.__field.figure_make_fall_tick()
-            self.score.set(str(int(self.score.get()) + 1))
-        else:
-            if self.is_boost:
-                self.disable_boost()
-            if not self.is_game_over:
-                self.add_new_figure()
+        if not self.paused:
+            if self.__field.can_figure_fall():
+                self.__field.figure_make_fall_tick()
+                self.score.set(str(int(self.score.get()) + 1))
+            else:
+                if self.is_boost:
+                    self.disable_boost()
+                if not self.is_game_over:
+                    self.add_new_figure()
         self.after = self.__view.master.after(int(self.sleep), self.fall)
 
     def disable_boost(self):
@@ -93,6 +95,7 @@ class Controller:
         self.score.set(str(int(self.score.get()) + self.__field.get_columns()))
 
     def menu(self, paused=False):
+        self.paused = paused
         cpy = None
         if paused:
             cpy = self.frame
@@ -125,6 +128,7 @@ class Controller:
             event.widget.master.destroy()
             cpy.pack()
             self.frame = cpy
+            self.paused = False
 
         items[0].bind('<Button-1>', (lambda e: self.play()) if not paused else back)
         items[1].bind('<Button-1>', lambda e: self.show_high_scores())
@@ -204,7 +208,7 @@ class Controller:
 
     def play(self):
         self.clear()
-
+        self.is_game_over = False
         self.__field = Field(8, 16)
         self.__view = View(self.frame, 129, 257, self.__field, 'white')
         self.score = self.__view.score
@@ -244,7 +248,7 @@ class Controller:
 
 
 r = Tk()
-r.geometry('+800+100')
+r.geometry('+300+100')
 r.title('TETRIS')
 
 app = Controller(r)
