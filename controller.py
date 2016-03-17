@@ -245,13 +245,3 @@ class Controller:
         else:
             f.move_by(randint(0, self.rand_col(self.__field, f)))
         return f
-
-
-r = Tk()
-r.geometry('+300+100')
-r.title('TETRIS')
-
-app = Controller(r)
-app.menu()
-
-r.mainloop()
